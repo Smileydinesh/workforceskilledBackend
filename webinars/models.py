@@ -1,0 +1,98 @@
+import uuid
+from django.db import models
+from django.utils import timezone
+
+
+
+class LiveWebinar(models.Model):
+    WEBINAR_STATUS = (
+        ("UPCOMING", "Upcoming"),
+        ("LIVE", "Live"),
+        ("ENDED", "Ended"),
+    )
+
+    webinar_id = models.CharField(
+        max_length=20,
+        unique=True,
+        editable=False
+    )
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True) 
+    cover_image = models.ImageField(upload_to="webinars/covers/")
+    instructor = models.ForeignKey("webinars.Instructor",on_delete=models.CASCADE)
+
+    start_datetime = models.DateTimeField()
+    time_display = models.CharField(max_length=100)
+    duration_minutes = models.PositiveIntegerField()
+
+    # price_usd = models.DecimalField(max_digits=8, decimal_places=2)
+
+    status = models.CharField(
+        max_length=10,
+        choices=WEBINAR_STATUS,
+        default="UPCOMING"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["start_datetime"]
+
+    def save(self, *args, **kwargs):
+        if not self.webinar_id:
+            self.webinar_id = f"WEB{timezone.now().strftime('%y%m%d')}{uuid.uuid4().hex[:4].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
+class WebinarPricing(models.Model):
+    webinar = models.OneToOneField(
+        LiveWebinar,
+        on_delete=models.CASCADE,
+        related_name="pricing"
+    )
+
+    # Live
+    live_single_price = models.DecimalField(max_digits=8, decimal_places=2)
+    live_multi_price = models.DecimalField(max_digits=8, decimal_places=2)
+
+    # Recorded
+    recorded_single_price = models.DecimalField(max_digits=8, decimal_places=2)
+    recorded_multi_price = models.DecimalField(max_digits=8, decimal_places=2)
+
+    # Combo
+    combo_single_price = models.DecimalField(max_digits=8, decimal_places=2)
+    combo_multi_price = models.DecimalField(max_digits=8, decimal_places=2)
+
+class WebinarOverview(models.Model):
+    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
+    paragraph = models.TextField()
+
+
+class WebinarWhyAttend(models.Model):
+    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
+    point = models.CharField(max_length=255)
+
+class WebinarBenefit(models.Model):
+    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
+    subtitle = models.CharField(max_length=255, blank=True)
+    point = models.CharField(max_length=255)
+
+
+class WebinarAreaCovered(models.Model):
+    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
+    point = models.CharField(max_length=255)
+
+
+class Instructor(models.Model):
+    name = models.CharField(max_length=100)
+    designation = models.CharField(max_length=150)
+    organization = models.CharField(max_length=150, blank=True)
+    bio = models.TextField()
+    photo = models.ImageField(upload_to="webinars/instructors/")
+
+    def __str__(self):
+        return f"{self.name} – {self.designation}"
