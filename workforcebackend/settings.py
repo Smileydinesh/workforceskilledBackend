@@ -35,6 +35,7 @@ ALLOWED_HOSTS = os.environ.get(
 
 
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -102,11 +103,12 @@ DATABASES = {
 }
 
 # CORS
+CORS_ALLOWED_ORIGINS = [
+    "https://workforceskilled.onrender.com/",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
