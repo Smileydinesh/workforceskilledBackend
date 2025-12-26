@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*rpw-t!3688!t+$w2d%+6@h44+*_n_%&m0li3$fbv6=8larn0k'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", "False") == "True"
+DEBUG = True
 
 ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'cart',
     'accounts',
     'orders',
+    "recorded_webinars",
 ]
 
 MIDDLEWARE = [

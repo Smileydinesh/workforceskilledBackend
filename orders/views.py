@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from orders.serializers import OrderItemSerializer
 
 from cart.models import CartItem
 from .models import Order, OrderItem
@@ -24,20 +25,30 @@ class CheckoutAPIView(APIView):
         if not cart_items.exists():
             return Response({"detail": "Cart is empty"}, status=400)
 
-        items = []
-        total = 0
+        serializer = OrderItemSerializer(
+            cart_items,
+            many=True,
+            context={"request": request}
+        )
 
-        for item in cart_items:
-            subtotal = item.subtotal()
-            total += subtotal
+        total = sum(item.subtotal() for item in cart_items)
 
-            items.append({
-                "title": item.webinar.title,
-                "price": item.unit_price,
-                "quantity": item.quantity,
-                "type": item.purchase_type,
-                "subtotal": subtotal,
-            })
+        return Response({
+            "user": {
+                "first_name": request.user.first_name,
+                "last_name": request.user.last_name,
+                "email": request.user.email,
+                "phone": request.user.phone,
+                "company": request.user.company,
+                "country": request.user.country,
+            },
+            "cart": {
+                "items": serializer.data,   # 🔥 THIS FIXES IMAGES
+                "subtotal": total,
+                "total": total,
+            }
+        })
+
 
         return Response({
             "user": {

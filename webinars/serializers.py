@@ -12,6 +12,8 @@ from .models import (
 
 # ---------------- INSTRUCTOR ----------------
 class InstructorSerializer(serializers.ModelSerializer):
+    photo = serializers.SerializerMethodField()
+
     class Meta:
         model = Instructor
         fields = [
@@ -21,6 +23,12 @@ class InstructorSerializer(serializers.ModelSerializer):
             "bio",
             "photo",
         ]
+
+    def get_photo(self, obj):
+        request = self.context.get("request")
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None
 
 
 # ---------------- LIST SERIALIZER ----------------

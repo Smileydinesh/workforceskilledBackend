@@ -6,16 +6,21 @@ from .serializers import (
 )
 
 
+
 class LiveWebinarListAPIView(ListAPIView):
     serializer_class = LiveWebinarSerializer
 
     def get_queryset(self):
         return LiveWebinar.objects.select_related(
-            "instructor", "pricing"
-        ).filter(status__in=["UPCOMING", "LIVE"])
+            "instructor",
+            "pricing"
+        )
 
     def get_serializer_context(self):
-        return {"request": self.request}
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
 
 
 
