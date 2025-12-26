@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-*rpw-t!3688!t+$w2d%+6@h44+*_n_%&m0li3$fbv6=8larn0k'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
@@ -116,6 +116,17 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CSRF_TRUSTED_ORIGINS = [
     "https://workforceskilled.onrender.com",
 ]
+
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+
+CORS_PREFLIGHT_MAX_AGE = 86400
 
 
 REST_FRAMEWORK = {
