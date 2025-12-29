@@ -5,28 +5,60 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import CartItem
 from webinars.models import LiveWebinar
+from recorded_webinars.models import RecordedWebinar  # Add this import
 
+
+LIVE_ALLOWED_PURCHASES = {
+    "LIVE_SINGLE",
+    "LIVE_MULTI",
+    "RECORDED_SINGLE",
+    "RECORDED_MULTI",
+    "COMBO_SINGLE",
+    "COMBO_MULTI",
+}
+
+RECORDED_ALLOWED_PURCHASES = {
+    "RECORDED_SINGLE",
+    "RECORDED_MULTI",
+}
 
 class CartAPIView(APIView):
+
+    
 
     def get_session_key(self, request):
         if not request.session.session_key:
             request.session.create()
         return request.session.session_key
 
-    def get_price(self, webinar, purchase_type):
-        pricing = webinar.pricing
+    def get_price(self, webinar, purchase_type, webinar_type):  # Add webinar_type param
+        if webinar_type == "LIVE":
+            pricing = webinar.pricing
+            price_map = {
+                "LIVE_SINGLE": pricing.live_single_price,
+                "LIVE_MULTI": pricing.live_multi_price,
+                "RECORDED_SINGLE": pricing.recorded_single_price,  # Fallback, but won't be used for LIVE
+                "RECORDED_MULTI": pricing.recorded_multi_price,
+                "COMBO_SINGLE": pricing.combo_single_price,
+                "COMBO_MULTI": pricing.combo_multi_price,
+            }
+        else:  # RECORDED
+            pricing = webinar.pricing
+            price_map = {
+                "RECORDED_SINGLE": pricing.single_price,
+                "RECORDED_MULTI": pricing.multi_user_price or pricing.single_price,  # Fallback if multi is null
+            }
+            # For recorded, map LIVE/COMBO to single_price as fallback (or raise error if invalid)
+            if purchase_type not in price_map:
+                price_map[purchase_type] = pricing.single_price  # Or validate strictly
 
-        price_map = {
-            "LIVE_SINGLE": pricing.live_single_price,
-            "LIVE_MULTI": pricing.live_multi_price,
-            "RECORDED_SINGLE": pricing.recorded_single_price,
-            "RECORDED_MULTI": pricing.recorded_multi_price,
-            "COMBO_SINGLE": pricing.combo_single_price,
-            "COMBO_MULTI": pricing.combo_multi_price,
-        }
+        price = price_map.get(purchase_type)
 
-        return price_map[purchase_type]
+        if price is None:
+            raise ValueError("Invalid purchase type price mapping")
+
+        return price
+
 
     # ---------------- GET CART ----------------
     def get(self, request):
@@ -44,29 +76,52 @@ class CartAPIView(APIView):
                 "id": item.id,
                 "webinar_id": item.webinar.webinar_id,
                 "title": item.webinar.title,
-                "cover_image": request.build_absolute_uri(item.webinar.cover_image.url),
+                "cover_image": request.build_absolute_uri(item.webinar.cover_image.url) if item.webinar.cover_image else None,
                 "instructor": item.webinar.instructor.name,
                 "purchase_type": item.purchase_type,
                 "price": item.unit_price,
                 "quantity": item.quantity,
                 "subtotal": subtotal,
+                "webinar_type": item.webinar_type,  # Optional: for frontend icons/diffs
             })
 
-        return Response({"items": data, "total": total,"count": len(items) })
+        return Response({"items": data, "total": total, "count": len(items)})
 
     # ---------------- ADD TO CART ----------------
     def post(self, request):
         session_key = self.get_session_key(request)
         webinar_id = request.data.get("webinar_id")
         purchase_type = request.data.get("purchase_type", "LIVE_SINGLE")
+        webinar_type = request.data.get("webinar_type", "LIVE")  # New param, default LIVE for backward compat
 
-        webinar = get_object_or_404(LiveWebinar, webinar_id=webinar_id)
+        if webinar_type == "LIVE":
+            webinar = get_object_or_404(LiveWebinar, webinar_id=webinar_id)
+            webinar_obj = webinar
+        else:
+            webinar = get_object_or_404(RecordedWebinar, webinar_id=webinar_id)
+            webinar_obj = webinar
 
-        unit_price = self.get_price(webinar, purchase_type)
+
+        # Validate purchase_type matches webinar_type
+        if webinar_type == "LIVE" and purchase_type not in LIVE_ALLOWED_PURCHASES:
+            return Response(
+                {"error": "Invalid purchase type for live webinar"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if webinar_type == "RECORDED" and purchase_type not in RECORDED_ALLOWED_PURCHASES:
+            return Response(
+                {"error": "Invalid purchase type for recorded webinar"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        unit_price = self.get_price(webinar, purchase_type, webinar_type)
 
         CartItem.objects.create(
             session_key=session_key,
-            webinar=webinar,
+            webinar_type=webinar_type,
+            live_webinar=webinar if webinar_type == "LIVE" else None,
+            recorded_webinar=webinar if webinar_type == "RECORDED" else None,
             purchase_type=purchase_type,
             unit_price=unit_price,
         )

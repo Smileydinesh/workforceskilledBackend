@@ -3,6 +3,15 @@ from django.db import models
 from django.utils import timezone
 
 
+# webinars/models.py
+
+class WebinarCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
 
 class LiveWebinar(models.Model):
     WEBINAR_STATUS = (
@@ -16,6 +25,13 @@ class LiveWebinar(models.Model):
         unique=True,
         editable=False
     )
+
+    category = models.ForeignKey(
+    WebinarCategory,
+    on_delete=models.PROTECT,
+    related_name="webinars"
+)
+
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True) 

@@ -3,90 +3,70 @@ from .models import (
     RecordedWebinar,
     RecordedWebinarPricing,
     RecordedWebinarDetail,
+    RecordedWebinarOverview,
+    RecordedWebinarWhyAttend,
+    RecordedWebinarBenefit,
+    RecordedWebinarAreaCovered,
 )
 
-# ----------------------------
-# INLINE: PRICING
-# ----------------------------
+
+
 
 class RecordedWebinarPricingInline(admin.StackedInline):
     model = RecordedWebinarPricing
     extra = 0
     max_num = 1
-    can_delete = False
-    verbose_name_plural = "Pricing (Recorded Webinar)"
 
 
-# ----------------------------
-# INLINE: DETAILS
-# ----------------------------
-
-class RecordedWebinarDetailInline(admin.StackedInline):
-    model = RecordedWebinarDetail
-    extra = 0
-    max_num = 1
-    can_delete = False
-    verbose_name_plural = "Recorded Webinar Details"
-
-    fieldsets = (
-        ("Overview", {
-            "fields": ("overview",)
-        }),
-        ("Why You Should Attend", {
-            "fields": ("why_attend",)
-        }),
-        ("Who Will Benefit", {
-            "fields": ("who_benefit",)
-        }),
-        ("Areas Covered in the Session", {
-            "fields": ("areas_covered",)
-        }),
-        ("Additional Information", {
-            "fields": ("format", "refund_policy")
-        }),
-    )
 
 
-# ----------------------------
-# RECORDED WEBINAR ADMIN
-# ----------------------------
+class RecordedWebinarOverviewInline(admin.TabularInline):
+    model = RecordedWebinarOverview
+    extra = 1
+
+
+class RecordedWebinarWhyAttendInline(admin.TabularInline):
+    model = RecordedWebinarWhyAttend
+    extra = 1
+
+
+class RecordedWebinarBenefitInline(admin.TabularInline):
+    model = RecordedWebinarBenefit
+    extra = 1
+
+
+class RecordedWebinarAreaCoveredInline(admin.TabularInline):
+    model = RecordedWebinarAreaCovered
+    extra = 1
+
+
 
 @admin.register(RecordedWebinar)
 class RecordedWebinarAdmin(admin.ModelAdmin):
     list_display = (
         "title",
+        "webinar_id",
         "instructor",
         "duration_minutes",
         "access_type",
         "is_published",
+        "created_at",
     )
 
-    list_filter = ("is_published", "access_type")
-    search_fields = ("title", "instructor__name")
-    readonly_fields = ("webinar_id",)
+    list_filter = ("is_published", "access_type", "created_at")
+    search_fields = ("title", "webinar_id", "instructor__name")
+    readonly_fields = ("webinar_id", "created_at")
 
     inlines = [
-        RecordedWebinarPricingInline,
-        RecordedWebinarDetailInline,
+        RecordedWebinarPricingInline, 
+        RecordedWebinarOverviewInline,
+        RecordedWebinarWhyAttendInline,
+        RecordedWebinarBenefitInline,
+        RecordedWebinarAreaCoveredInline,
     ]
 
-    fieldsets = (
-        ("Basic Information", {
-            "fields": (
-                "title",
-                "instructor",
-                "cover_image",
-                "preview_video",
-            )
-        }),
-        ("Access & Duration", {
-            "fields": (
-                "duration_minutes",
-                "access_type",
-                "is_published",
-            )
-        }),
-        ("System", {
-            "fields": ("webinar_id",),
-        }),
-    )
+
+@admin.register(RecordedWebinarDetail)
+class RecordedWebinarDetailAdmin(admin.ModelAdmin):
+    list_display = ("webinar", "format", "refund_policy")
+    search_fields = ("webinar__title", "webinar__webinar_id")

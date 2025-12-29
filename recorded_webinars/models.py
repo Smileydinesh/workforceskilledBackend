@@ -8,7 +8,7 @@ from webinars.models import Instructor
 import uuid
 from django.utils import timezone
 from django.db import models
-from webinars.models import Instructor
+from webinars.models import Instructor, WebinarCategory
 
 
 class RecordedWebinar(models.Model):
@@ -16,6 +16,12 @@ class RecordedWebinar(models.Model):
         max_length=20,
         unique=True,
         editable=False
+    )
+
+    category = models.ForeignKey(
+        WebinarCategory,
+        on_delete=models.PROTECT,
+        related_name="recorded_webinars"
     )
 
     title = models.CharField(max_length=255)
@@ -72,13 +78,59 @@ class RecordedWebinarDetail(models.Model):
         on_delete=models.CASCADE
     )
 
-    overview = models.TextField(help_text="Paragraphs separated by new lines")
-    why_attend = models.TextField(help_text="One point per line")
-    who_benefit = models.TextField(help_text="One point per line")
-    areas_covered = models.TextField(help_text="One point per line")
-
-    format = models.CharField(max_length=100, default="High-quality streaming")
+    format = models.CharField(
+        max_length=100,
+        default="High-quality streaming"
+    )
     refund_policy = models.CharField(
         max_length=255,
         default="100% Money Back Guarantee"
     )
+
+    def __str__(self):
+        return f"Details for {self.webinar.title}"
+
+
+class RecordedWebinarOverview(models.Model):
+    webinar = models.ForeignKey(
+        RecordedWebinar,
+        on_delete=models.CASCADE
+    )
+    paragraph = models.TextField()
+
+    def __str__(self):
+        return self.paragraph[:50]
+
+
+class RecordedWebinarWhyAttend(models.Model):
+    webinar = models.ForeignKey(
+        RecordedWebinar,
+        on_delete=models.CASCADE
+    )
+    point = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.point
+
+
+class RecordedWebinarBenefit(models.Model):
+    webinar = models.ForeignKey(
+        RecordedWebinar,
+        on_delete=models.CASCADE
+    )
+    subtitle = models.CharField(max_length=255, blank=True)
+    point = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.point
+
+
+class RecordedWebinarAreaCovered(models.Model):
+    webinar = models.ForeignKey(
+        RecordedWebinar,
+        on_delete=models.CASCADE
+    )
+    point = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.point

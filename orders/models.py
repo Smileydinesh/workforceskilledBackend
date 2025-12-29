@@ -22,9 +22,6 @@ class Checkout(models.Model):
         return f"{self.user.email} - Checkout"
 
 
-
-
-
 class Order(models.Model):
     STATUS_CHOICES = (
         ("PENDING", "Pending"),

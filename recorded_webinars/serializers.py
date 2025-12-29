@@ -1,120 +1,138 @@
 from rest_framework import serializers
 from .models import RecordedWebinar
+from rest_framework import serializers
+from .models import (
+    RecordedWebinar,
+    RecordedWebinarPricing,
+    RecordedWebinarOverview,
+    RecordedWebinarWhyAttend,
+    RecordedWebinarBenefit,
+    RecordedWebinarAreaCovered,
+)
+from webinars.serializers import InstructorSerializer
+
 
 
 from rest_framework import serializers
 from django.utils.timezone import localtime
-from .models import RecordedWebinar,RecordedWebinarDetail
+from .models import RecordedWebinar
+
+
+from rest_framework import serializers
+from .models import RecordedWebinar
+from webinars.serializers import InstructorSerializer
 
 
 class RecordedWebinarFrontendSerializer(serializers.ModelSerializer):
-    webinar_id = serializers.CharField(read_only=True)
-    speaker = serializers.CharField(source="instructor.name")
-    image = serializers.SerializerMethodField()
-    speakerImage = serializers.SerializerMethodField()
-    duration = serializers.SerializerMethodField()
-    price = serializers.SerializerMethodField()
+    instructor = InstructorSerializer()
+    cover_image = serializers.SerializerMethodField()
+    display_price = serializers.SerializerMethodField()
     month = serializers.SerializerMethodField()
-    category = serializers.SerializerMethodField()  # ✅ FIX
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = RecordedWebinar
         fields = [
-            "webinar_id", 
+            "webinar_id",
             "title",
-            "speaker",
-            "duration",
+            "cover_image",
+            "duration_minutes",
+            "instructor",
             "month",
             "category",
-            "price",
-            "image",
-            "speakerImage",
+            "display_price",
         ]
 
-    def get_image(self, obj):
+    def get_cover_image(self, obj):
         request = self.context.get("request")
-        return request.build_absolute_uri(obj.cover_image.url)
-
-    def get_speakerImage(self, obj):
-        request = self.context.get("request")
-        if obj.instructor.photo:
-            return request.build_absolute_uri(obj.instructor.photo.url)
+        if obj.cover_image and request:
+            return request.build_absolute_uri(obj.cover_image.url)
         return None
 
-    def get_duration(self, obj):
-        return f"{obj.duration_minutes} minutes"
-
-    def get_price(self, obj):
+    def get_display_price(self, obj):
         if hasattr(obj, "pricing") and obj.pricing:
-            return f"${obj.pricing.single_price:.2f}"
-        return "$0.00"
+            return obj.pricing.single_price
+        return 0
 
     def get_month(self, obj):
-        return obj.created_at.strftime("%B")
+        return obj.created_at.strftime("%Y-%m")
 
     def get_category(self, obj):
-        return "AI & Productivity"
+        return obj.category.name if hasattr(obj, "category") and obj.category else None
 
 
 
-
-# recorded_webinars/serializers.py
+class RecordedWebinarPricingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecordedWebinarPricing
+        fields = [
+            "single_price",
+            "multi_user_price",
+        ]
 
 
 
 class RecordedWebinarDetailPageSerializer(serializers.ModelSerializer):
-    pricing = serializers.SerializerMethodField()
-    instructor = serializers.SerializerMethodField()
+    instructor = InstructorSerializer()
+    pricing = RecordedWebinarPricingSerializer(allow_null=True)
+
     cover_image = serializers.SerializerMethodField()
 
+    overview = serializers.SerializerMethodField()
     why_attend = serializers.SerializerMethodField()
-    who_benefit = serializers.SerializerMethodField()
+    who_benefits = serializers.SerializerMethodField()
     areas_covered = serializers.SerializerMethodField()
 
+    format = serializers.CharField(source="details.format")
+    refund_policy = serializers.CharField(source="details.refund_policy")
+
     class Meta:
-        model = RecordedWebinarDetail
+        model = RecordedWebinar
         fields = [
+            "webinar_id",
+            "title",
+            "description",
+            "cover_image",
+            "duration_minutes",
+            "instructor",
+            "pricing",
             "overview",
             "why_attend",
-            "who_benefit",
+            "who_benefits",
             "areas_covered",
             "format",
             "refund_policy",
-            "pricing",
-            "instructor",
-            "cover_image",
         ]
 
-    def _split(self, text):
-        return [line.strip() for line in text.split("\n") if line.strip()]
+    def get_cover_image(self, obj):
+        request = self.context.get("request")
+        if obj.cover_image and request:
+            return request.build_absolute_uri(obj.cover_image.url)
+        return None
+    
+    def get_overview(self, obj):
+        return [
+            o.paragraph
+            for o in RecordedWebinarOverview.objects.filter(webinar=obj)
+        ]
 
     def get_why_attend(self, obj):
-        return self._split(obj.why_attend)
+        return [
+            w.point
+            for w in RecordedWebinarWhyAttend.objects.filter(webinar=obj)
+        ]
 
-    def get_who_benefit(self, obj):
-        return self._split(obj.who_benefit)
+    def get_who_benefits(self, obj):
+        benefits = RecordedWebinarBenefit.objects.filter(webinar=obj)
+        return {
+            "subtitle": benefits.first().subtitle if benefits.exists() else "",
+            "points": [b.point for b in benefits],
+        }
 
     def get_areas_covered(self, obj):
-        return self._split(obj.areas_covered)
+        return [
+            a.point
+            for a in RecordedWebinarAreaCovered.objects.filter(webinar=obj)
+        ]
 
-    def get_pricing(self, obj):
-        return {
-            "single": obj.webinar.pricing.single_price,
-            "multi": obj.webinar.pricing.multi_user_price,
-        }
-
-    def get_cover_image(self, obj):
-        request = self.context["request"]
-        return request.build_absolute_uri(obj.webinar.cover_image.url)
-
-    def get_instructor(self, obj):
-        request = self.context["request"]
-        i = obj.webinar.instructor
-        return {
-            "name": i.name,
-            "designation": i.designation,
-            "company": i.organization,
-            "bio": i.bio,
-            "photo": request.build_absolute_uri(i.photo.url),
-        }
 

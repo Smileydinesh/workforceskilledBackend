@@ -7,7 +7,9 @@ from .models import (
     WebinarWhyAttend,
     WebinarBenefit,
     WebinarAreaCovered,
+    WebinarCategory,
 )
+
 
 # ----------------------------
 # INLINE SECTIONS
@@ -55,22 +57,30 @@ class InstructorAdmin(admin.ModelAdmin):
     search_fields = ("name", "designation", "organization")
 
 
+@admin.register(WebinarCategory)
+class WebinarCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+
+
+
 # ----------------------------
 # LIVE WEBINAR ADMIN
 # ----------------------------
-
 @admin.register(LiveWebinar)
 class LiveWebinarAdmin(admin.ModelAdmin):
     list_display = (
         "title",
         "webinar_id",
+        "category",
         "instructor",
         "start_datetime",
         "duration_minutes",
         "status",
     )
 
-    list_filter = ("status", "start_datetime")
+    list_filter = ("status", "category", "start_datetime")
     search_fields = ("title", "webinar_id")
     readonly_fields = ("webinar_id",)
 
@@ -86,6 +96,7 @@ class LiveWebinarAdmin(admin.ModelAdmin):
         ("Basic Information", {
             "fields": (
                 "title",
+                "category",
                 "instructor",
                 "cover_image",
                 "status",
