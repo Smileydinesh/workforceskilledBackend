@@ -27,8 +27,6 @@ urlpatterns = [
     path("api/orders/", include("orders.urls")),
     path("api/", include("recorded_webinars.urls")),
 
-
-
 ]
 
 if settings.DEBUG:

@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
-
+from django.db.models import Q
 from .models import RecordedWebinar
 from webinars.models import Instructor, WebinarCategory
 
@@ -95,19 +95,17 @@ class RecordedWebinarListAPIView(ListAPIView):
             "category"
         )
 
-        # -------- SEARCH --------
+        # -------- SEARCH (MATCH LIVE WEBINAR LOGIC) --------
         search = self.request.query_params.get("search")
         if search:
-            qs = qs.filter(title__icontains=search)
-
-        # -------- MONTH --------
-        month = self.request.query_params.get("month")
-        if month:
-            year, m = month.split("-")
             qs = qs.filter(
-                created_at__year=year,
-                created_at__month=m
-            )
+                Q(title__icontains=search) |
+                Q(description__icontains=search) |
+                Q(instructor__name__icontains=search) |
+                Q(instructor__designation__icontains=search) |
+                Q(instructor__organization__icontains=search) |
+                Q(category__name__icontains=search)
+            ).distinct()
 
         # -------- INSTRUCTOR --------
         instructor = self.request.query_params.get("instructor")

@@ -50,21 +50,7 @@ class CheckoutAPIView(APIView):
         })
 
 
-        return Response({
-            "user": {
-                "first_name": request.user.first_name,
-                "last_name": request.user.last_name,
-                "email": request.user.email,
-                "phone": request.user.phone,
-                "company": request.user.company,
-                "country": request.user.country,
-            },
-            "cart": {
-                "items": items,
-                "subtotal": total,
-                "total": total,
-            }
-        })
+      
 
     # 🔹 STEP 2: CREATE ORDER + CHECKOUT
     def post(self, request):

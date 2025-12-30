@@ -25,11 +25,11 @@ RECORDED_ALLOWED_PURCHASES = {
 class CartAPIView(APIView):
 
     
-
     def get_session_key(self, request):
         if not request.session.session_key:
-            request.session.create()
+            request.session.save()   # THIS creates the session safely
         return request.session.session_key
+
 
     def get_price(self, webinar, purchase_type, webinar_type):  # Add webinar_type param
         if webinar_type == "LIVE":
@@ -62,6 +62,9 @@ class CartAPIView(APIView):
 
     # ---------------- GET CART ----------------
     def get(self, request):
+        print("GET SESSION:", request.session.session_key)
+
+
         session_key = self.get_session_key(request)
         items = CartItem.objects.filter(session_key=session_key)
 
@@ -69,26 +72,40 @@ class CartAPIView(APIView):
         total = 0
 
         for item in items:
+            webinar = item.webinar  # uses @property
+
+            if webinar is None:
+                continue  # SAFETY: skip corrupted rows
+
             subtotal = item.subtotal()
             total += subtotal
 
             data.append({
                 "id": item.id,
-                "webinar_id": item.webinar.webinar_id,
-                "title": item.webinar.title,
-                "cover_image": request.build_absolute_uri(item.webinar.cover_image.url) if item.webinar.cover_image else None,
-                "instructor": item.webinar.instructor.name,
+                "webinar_id": webinar.webinar_id,
+                "title": webinar.title,
+                "cover_image": (
+                    request.build_absolute_uri(webinar.cover_image.url)
+                    if webinar.cover_image else None
+                ),
+                "instructor": webinar.instructor.name if hasattr(webinar, "instructor") else None,
                 "purchase_type": item.purchase_type,
-                "price": item.unit_price,
+                "price": float(item.unit_price),
                 "quantity": item.quantity,
-                "subtotal": subtotal,
-                "webinar_type": item.webinar_type,  # Optional: for frontend icons/diffs
+                "subtotal": float(subtotal),
+                "webinar_type": item.webinar_type,
             })
 
-        return Response({"items": data, "total": total, "count": len(items)})
+        return Response({
+            "items": data,
+            "total": float(total),
+            "count": len(data),
+        })
 
     # ---------------- ADD TO CART ----------------
     def post(self, request):
+        print("POST SESSION:", request.session.session_key)
+
         session_key = self.get_session_key(request)
         webinar_id = request.data.get("webinar_id")
         purchase_type = request.data.get("purchase_type", "LIVE_SINGLE")
@@ -125,6 +142,9 @@ class CartAPIView(APIView):
             purchase_type=purchase_type,
             unit_price=unit_price,
         )
+
+        request.session.modified = True
+        request.session.save()
 
         return Response(
             {"message": "Added to cart"},
