@@ -5,27 +5,44 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from accounts.utils.email import send_welcome_email
 
 
-from .models import User
+from accounts.models import User
 from .serializers import RegisterSerializer
+from accounts.utils.email import send_welcome_email
+
 
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
-        if serializer.is_valid():
-            user = serializer.save()
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-            refresh = RefreshToken.for_user(user)
+        user = serializer.save()
 
-            return Response({
+        # 📧 Send welcome email (non-blocking)
+        try:
+            send_welcome_email(user)
+        except Exception as e:
+            print("Welcome email failed:", e)
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
                 "message": "Account created successfully",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-            }, status=status.HTTP_201_CREATED)
+            },
+            status=status.HTTP_201_CREATED
+        )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class LoginAPIView(APIView):
     def post(self, request):
