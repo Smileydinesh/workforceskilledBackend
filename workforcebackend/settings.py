@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-from dotenv import load_dotenv
+
 
 from pathlib import Path
 from datetime import timedelta
@@ -19,7 +19,7 @@ from corsheaders.defaults import default_headers
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
-load_dotenv()
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
