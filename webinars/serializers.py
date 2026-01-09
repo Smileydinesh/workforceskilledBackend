@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.utils.timezone import localtime
+from zoneinfo import ZoneInfo
 from .models import (
     LiveWebinar,
     Instructor,
@@ -9,6 +10,8 @@ from .models import (
     WebinarBenefit,
     WebinarAreaCovered,
 )
+
+
 
 # ---------------- INSTRUCTOR ----------------
 class InstructorSerializer(serializers.ModelSerializer):
@@ -36,8 +39,8 @@ class LiveWebinarSerializer(serializers.ModelSerializer):
     instructor = InstructorSerializer()
     cover_image = serializers.SerializerMethodField()
     display_price = serializers.SerializerMethodField()
-    time_display = serializers.SerializerMethodField()
-    date_display = serializers.SerializerMethodField()
+    # time_display = serializers.SerializerMethodField()
+    # date_display = serializers.SerializerMethodField()
 
     class Meta:
         model = LiveWebinar
@@ -49,8 +52,7 @@ class LiveWebinarSerializer(serializers.ModelSerializer):
             "start_datetime", 
             "duration_minutes",
             "display_price",
-            "time_display",
-            "date_display",
+            
             "status",
         ]
 
@@ -93,7 +95,10 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
     pricing = WebinarPricingSerializer(allow_null=True)
 
     date_display = serializers.SerializerMethodField()
-    time_display = serializers.SerializerMethodField()
+    
+
+    pst = serializers.SerializerMethodField()
+    est = serializers.SerializerMethodField()
 
     overview = serializers.SerializerMethodField()
     why_attend = serializers.SerializerMethodField()
@@ -108,9 +113,12 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "start_datetime",
-            "date_display",
-            "time_display",
+
+
             "duration_minutes",
+            "date_display",
+            "pst",
+            "est",
             "instructor",
             "pricing",
             "overview",
@@ -123,8 +131,17 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
     def get_date_display(self, obj):
         return obj.start_datetime.strftime("%A, %B %d, %Y")
 
-    def get_time_display(self, obj):
-        return localtime(obj.start_datetime).strftime("%I:%M %p")
+   
+    def get_pst(self, obj):
+        # Explicit for clarity (same as TIME_ZONE)
+        return obj.start_datetime.astimezone(
+            ZoneInfo("America/Los_Angeles")
+        ).strftime("%I:%M %p PST")
+
+    def get_est(self, obj):
+        return obj.start_datetime.astimezone(
+            ZoneInfo("America/New_York")
+        ).strftime("%I:%M %p EST")
 
     # -------- CONTENT SECTIONS --------
     def get_overview(self, obj):
