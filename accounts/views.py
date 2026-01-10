@@ -5,7 +5,7 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
-from accounts.utils.email import send_welcome_email
+from threading import Thread
 
 
 from accounts.models import User
@@ -13,23 +13,24 @@ from .serializers import RegisterSerializer
 from accounts.utils.email import send_welcome_email
 
 
+def send_email_background(user):
+    try:
+        send_welcome_email(user)
+    except Exception as e:
+        print("Email error:", e)
+
+
 class RegisterAPIView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         user = serializer.save()
 
-        # 📧 Send welcome email (non-blocking)
-        try:
-            send_welcome_email(user)
-        except Exception as e:
-            print("Welcome email failed:", e)
+        # Send email asynchronously so Gunicorn is not blocked
+        Thread(target=send_email_background, args=(user,)).start()
 
         refresh = RefreshToken.for_user(user)
 
