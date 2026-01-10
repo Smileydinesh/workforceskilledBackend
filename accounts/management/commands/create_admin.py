@@ -6,7 +6,7 @@ User = get_user_model()
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        email = os.environ.get("Admin@gmail.com")
+        email = os.environ.get("admin@gmail.com")
         password = os.environ.get("Admin@123")
 
         if not email or not password:
