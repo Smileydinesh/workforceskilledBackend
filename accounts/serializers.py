@@ -19,24 +19,28 @@ class RegisterSerializer(serializers.ModelSerializer):
             "confirm_password",
         )
         extra_kwargs = {
-            "password": {"write_only": True}
+            "password": {"write_only": True},
+            "first_name": {"required": False, "allow_blank": True},
+            "last_name": {"required": False, "allow_blank": True},
+            "company": {"required": False, "allow_blank": True},
+            "country": {"required": False, "allow_blank": True},
+            "phone": {"required": False, "allow_blank": True},
         }
 
     def validate(self, data):
         if data["password"] != data["confirm_password"]:
-            raise serializers.ValidationError("Passwords do not match")
+            raise serializers.ValidationError({"password": "Passwords do not match"})
         return data
 
     def create(self, validated_data):
         validated_data.pop("confirm_password")
 
-        user = User.objects.create_user(
+        return User.objects.create_user(
             email=validated_data["email"],
             password=validated_data["password"],
-            first_name=validated_data["first_name"],
-            last_name=validated_data["last_name"],
-            company=validated_data["company"],
-            country=validated_data["country"],
-            phone=validated_data["phone"],
+            first_name=validated_data.get("first_name", ""),
+            last_name=validated_data.get("last_name", ""),
+            company=validated_data.get("company", ""),
+            country=validated_data.get("country", ""),
+            phone=validated_data.get("phone", ""),
         )
-        return user
