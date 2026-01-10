@@ -5,9 +5,11 @@ import os
 User = get_user_model()
 
 class Command(BaseCommand):
+    help = "Create admin user from environment variables"
+
     def handle(self, *args, **kwargs):
-        email = os.environ.get("admin@gmail.com")
-        password = os.environ.get("Admin@123")
+        email = os.environ.get("ADMIN_EMAIL")
+        password = os.environ.get("ADMIN_PASSWORD")
 
         if not email or not password:
             print("ADMIN_EMAIL or ADMIN_PASSWORD not set")
