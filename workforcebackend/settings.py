@@ -217,6 +217,7 @@ CKEDITOR_CONFIGS = {
     }
 }
 CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
+CKEDITOR_ALLOW_NONIMAGE_FILES = True
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
