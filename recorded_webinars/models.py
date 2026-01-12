@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from webinars.models import Instructor
-from ckeditor.fields import RichTextField
+from ckeditor_uploader.fields import RichTextUploadingField
 
 
 import uuid
@@ -94,19 +94,18 @@ class RecordedWebinarDetail(models.Model):
 
 class RecordedWebinarOverview(models.Model):
     webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
-    content = RichTextField()
+    content = RichTextUploadingField()
 
 class RecordedWebinarWhyAttend(models.Model):
     webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
-    content = RichTextField()
+    content = RichTextUploadingField()
 
 class RecordedWebinarBenefit(models.Model):
     webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
-    content = RichTextField()
+    content = RichTextUploadingField()
 
 class RecordedWebinarAreaCovered(models.Model):
     webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
-    content = RichTextField()
-
+    content = RichTextUploadingField()
 
  
