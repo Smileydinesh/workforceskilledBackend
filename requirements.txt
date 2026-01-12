@@ -15,3 +15,4 @@ gunicorn==21.2.0
 python-dotenv
 psycopg2-binary
 dj-database-url
+django-ckeditor==6.7.1
