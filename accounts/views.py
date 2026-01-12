@@ -7,7 +7,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from threading import Thread
 
-
 from accounts.models import User
 from .serializers import RegisterSerializer
 from accounts.utils.email import send_welcome_email
@@ -95,3 +94,14 @@ class LogoutAPIView(APIView):
                 {"error": "Invalid token"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class MeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            "id": request.user.id,
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+        })

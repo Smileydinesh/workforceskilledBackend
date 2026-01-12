@@ -26,6 +26,8 @@ urlpatterns = [
     path("api/accounts/", include("accounts.urls")),
     path("api/orders/", include("orders.urls")),
     path("api/", include("recorded_webinars.urls")),
+    path("ckeditor/", include("ckeditor_uploader.urls")),
+
 
 ]
 

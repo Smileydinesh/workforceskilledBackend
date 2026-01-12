@@ -23,25 +23,26 @@ class WebinarPricingInline(admin.StackedInline):
     verbose_name_plural = "Pricing (Live / Recorded / Combo)"
 
 
-class WebinarOverviewInline(admin.TabularInline):
+class WebinarOverviewInline(admin.StackedInline):
     model = WebinarOverview
     extra = 1
     verbose_name_plural = "Webinar Overview (Paragraphs)"
 
 
-class WebinarWhyAttendInline(admin.TabularInline):
+class WebinarWhyAttendInline(admin.StackedInline):
     model = WebinarWhyAttend
     extra = 1
     verbose_name_plural = "Why You Should Attend (Points)"
 
 
-class WebinarBenefitInline(admin.TabularInline):
+class WebinarBenefitInline(admin.StackedInline):
     model = WebinarBenefit
     extra = 1
+
     verbose_name_plural = "Who Will Benefit (Points)"
 
 
-class WebinarAreaCoveredInline(admin.TabularInline):
+class WebinarAreaCoveredInline(admin.StackedInline):
     model = WebinarAreaCovered
     extra = 1
     verbose_name_plural = "Areas Covered in the Session"

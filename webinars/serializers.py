@@ -95,8 +95,6 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
     pricing = WebinarPricingSerializer(allow_null=True)
 
     date_display = serializers.SerializerMethodField()
-    
-
     pst = serializers.SerializerMethodField()
     est = serializers.SerializerMethodField()
 
@@ -113,8 +111,6 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
             "description",
             "status",
             "start_datetime",
-
-
             "duration_minutes",
             "date_display",
             "pst",
@@ -128,12 +124,11 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
         ]
 
     # -------- DATE / TIME --------
+
     def get_date_display(self, obj):
         return obj.start_datetime.strftime("%A, %B %d, %Y")
 
-   
     def get_pst(self, obj):
-        # Explicit for clarity (same as TIME_ZONE)
         return obj.start_datetime.astimezone(
             ZoneInfo("America/Los_Angeles")
         ).strftime("%I:%M %p PST")
@@ -143,19 +138,16 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
             ZoneInfo("America/New_York")
         ).strftime("%I:%M %p EST")
 
-    # -------- CONTENT SECTIONS --------
+    # -------- CMS HTML FIELDS --------
+
     def get_overview(self, obj):
-        return [o.paragraph for o in obj.webinaroverview_set.all()]
+        return obj.webinaroverview.content if hasattr(obj, "webinaroverview") else ""
 
     def get_why_attend(self, obj):
-        return [w.point for w in obj.webinarwhyattend_set.all()]
+        return obj.webinarwhyattend.content if hasattr(obj, "webinarwhyattend") else ""
 
     def get_who_benefits(self, obj):
-        benefits = obj.webinarbenefit_set.all()
-        return {
-            "subtitle": benefits.first().subtitle if benefits.exists() else "",
-            "points": [b.point for b in benefits],
-        }
+        return obj.webinarbenefit.content if hasattr(obj, "webinarbenefit") else ""
 
     def get_areas_covered(self, obj):
-        return [a.point for a in obj.webinarareacovered_set.all()]
+        return obj.webinarareacovered.content if hasattr(obj, "webinarareacovered") else ""

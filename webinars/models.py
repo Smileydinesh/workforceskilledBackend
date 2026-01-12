@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
+from ckeditor.fields import RichTextField
 
 
 # webinars/models.py
@@ -31,7 +32,7 @@ class LiveWebinar(models.Model):
     on_delete=models.PROTECT,
     related_name="webinars"
 )
-
+  
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True) 
@@ -83,24 +84,24 @@ class WebinarPricing(models.Model):
     combo_single_price = models.DecimalField(max_digits=8, decimal_places=2)
     combo_multi_price = models.DecimalField(max_digits=8, decimal_places=2)
 
-class WebinarOverview(models.Model):
-    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
-    paragraph = models.TextField()
 
+
+class WebinarOverview(models.Model):
+    webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class WebinarWhyAttend(models.Model):
-    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
-    point = models.CharField(max_length=255)
+    webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class WebinarBenefit(models.Model):
-    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
-    subtitle = models.CharField(max_length=255, blank=True)
-    point = models.CharField(max_length=255)
-
+    webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class WebinarAreaCovered(models.Model):
-    webinar = models.ForeignKey(LiveWebinar, on_delete=models.CASCADE)
-    point = models.CharField(max_length=255)
+    webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
+
 
 
 class Instructor(models.Model):

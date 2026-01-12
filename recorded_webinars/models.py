@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from webinars.models import Instructor
+from ckeditor.fields import RichTextField
 
 
 import uuid
@@ -92,45 +93,20 @@ class RecordedWebinarDetail(models.Model):
 
 
 class RecordedWebinarOverview(models.Model):
-    webinar = models.ForeignKey(
-        RecordedWebinar,
-        on_delete=models.CASCADE
-    )
-    paragraph = models.TextField()
-
-    def __str__(self):
-        return self.paragraph[:50]
-
+    webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class RecordedWebinarWhyAttend(models.Model):
-    webinar = models.ForeignKey(
-        RecordedWebinar,
-        on_delete=models.CASCADE
-    )
-    point = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.point
-
+    webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class RecordedWebinarBenefit(models.Model):
-    webinar = models.ForeignKey(
-        RecordedWebinar,
-        on_delete=models.CASCADE
-    )
-    subtitle = models.CharField(max_length=255, blank=True)
-    point = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.point
-
+    webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
 class RecordedWebinarAreaCovered(models.Model):
-    webinar = models.ForeignKey(
-        RecordedWebinar,
-        on_delete=models.CASCADE
-    )
-    point = models.CharField(max_length=255)
+    webinar = models.OneToOneField(RecordedWebinar, on_delete=models.CASCADE)
+    content = RichTextField()
 
-    def __str__(self):
-        return self.point
+
+ 

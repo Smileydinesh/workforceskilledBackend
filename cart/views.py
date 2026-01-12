@@ -103,53 +103,50 @@ class CartAPIView(APIView):
         })
 
     # ---------------- ADD TO CART ----------------
+    # ---------------- ADD TO CART ----------------
+    # ---------------- ADD TO CART ----------------
     def post(self, request):
-        print("POST SESSION:", request.session.session_key)
-
         session_key = self.get_session_key(request)
         webinar_id = request.data.get("webinar_id")
         purchase_type = request.data.get("purchase_type", "LIVE_SINGLE")
-        webinar_type = request.data.get("webinar_type", "LIVE")  # New param, default LIVE for backward compat
+        webinar_type = request.data.get("webinar_type", "LIVE")
 
         if webinar_type == "LIVE":
             webinar = get_object_or_404(LiveWebinar, webinar_id=webinar_id)
-            webinar_obj = webinar
+            live_webinar = webinar
+            recorded_webinar = None
         else:
             webinar = get_object_or_404(RecordedWebinar, webinar_id=webinar_id)
-            webinar_obj = webinar
+            live_webinar = None
+            recorded_webinar = webinar
 
-
-        # Validate purchase_type matches webinar_type
+        # Validate purchase type
         if webinar_type == "LIVE" and purchase_type not in LIVE_ALLOWED_PURCHASES:
-            return Response(
-                {"error": "Invalid purchase type for live webinar"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid purchase type"}, status=400)
 
         if webinar_type == "RECORDED" and purchase_type not in RECORDED_ALLOWED_PURCHASES:
-            return Response(
-                {"error": "Invalid purchase type for recorded webinar"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid purchase type"}, status=400)
 
         unit_price = self.get_price(webinar, purchase_type, webinar_type)
 
-        CartItem.objects.create(
+        item, created = CartItem.objects.get_or_create(
             session_key=session_key,
             webinar_type=webinar_type,
-            live_webinar=webinar if webinar_type == "LIVE" else None,
-            recorded_webinar=webinar if webinar_type == "RECORDED" else None,
+            live_webinar=live_webinar,
+            recorded_webinar=recorded_webinar,
             purchase_type=purchase_type,
-            unit_price=unit_price,
+            defaults={
+                "unit_price": unit_price,
+                "quantity": 1,
+            }
         )
 
-        request.session.modified = True
-        request.session.save()
+        if not created:
+            item.quantity += 1
+            item.save()
 
-        return Response(
-            {"message": "Added to cart"},
-            status=status.HTTP_201_CREATED
-        )
+        return Response({"message": "Added to cart"}, status=201)
+
 
     # ---------------- REMOVE ITEM ----------------
     def delete(self, request):

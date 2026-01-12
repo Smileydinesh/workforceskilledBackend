@@ -140,12 +140,11 @@ class LiveWebinarFilterAPIView(APIView):
 class LiveWebinarDetailAPIView(RetrieveAPIView):
     queryset = LiveWebinar.objects.select_related(
         "instructor",
-        "pricing"
-    ).prefetch_related(
-        "webinaroverview_set",
-        "webinarwhyattend_set",
-        "webinarbenefit_set",
-        "webinarareacovered_set",
+        "pricing",
+        "webinaroverview",
+        "webinarwhyattend",
+        "webinarbenefit",
+        "webinarareacovered",
     )
     serializer_class = LiveWebinarDetailSerializer
     lookup_field = "webinar_id"

@@ -28,7 +28,9 @@ class CartItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("session_key", "webinar_type", "live_webinar", "recorded_webinar", "purchase_type")  # Updated
+        indexes = [
+            models.Index(fields=["session_key", "webinar_type"]),
+        ]
 
     @property
     def webinar(self):  # Helper to get the active webinar (for backward compat)

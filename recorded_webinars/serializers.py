@@ -111,28 +111,15 @@ class RecordedWebinarDetailPageSerializer(serializers.ModelSerializer):
         return None
     
     def get_overview(self, obj):
-        return [
-            o.paragraph
-            for o in RecordedWebinarOverview.objects.filter(webinar=obj)
-        ]
+        return obj.recordedwebinaroverview.content if hasattr(obj, "recordedwebinaroverview") else ""
 
     def get_why_attend(self, obj):
-        return [
-            w.point
-            for w in RecordedWebinarWhyAttend.objects.filter(webinar=obj)
-        ]
+        return obj.recordedwebinarwhyattend.content if hasattr(obj, "recordedwebinarwhyattend") else ""
 
     def get_who_benefits(self, obj):
-        benefits = RecordedWebinarBenefit.objects.filter(webinar=obj)
-        return {
-            "subtitle": benefits.first().subtitle if benefits.exists() else "",
-            "points": [b.point for b in benefits],
-        }
+        return obj.recordedwebinarbenefit.content if hasattr(obj, "recordedwebinarbenefit") else ""
 
     def get_areas_covered(self, obj):
-        return [
-            a.point
-            for a in RecordedWebinarAreaCovered.objects.filter(webinar=obj)
-        ]
+        return obj.recordedwebinarareacovered.content if hasattr(obj, "recordedwebinarareacovered") else ""
 
 
