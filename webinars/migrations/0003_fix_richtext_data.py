@@ -1,21 +1,22 @@
-from django.db import migrations, connection
+from django.db import migrations
 
-def table_has_column(table, column):
-    with connection.cursor() as cursor:
-        cursor.execute("""
-            SELECT 1
-            FROM information_schema.columns
-            WHERE table_name = %s AND column_name = %s
-        """, [table, column])
-        return cursor.fetchone() is not None
+def column_exists(schema_editor, table, column):
+    try:
+        return column in [
+            c.name for c in schema_editor.connection.introspection.get_table_description(
+                schema_editor.connection.cursor(), table
+            )
+        ]
+    except Exception:
+        return False
 
 
 def convert_text_to_html(apps, schema_editor):
-    def safe_fix(app_label, model_name, field_name):
+    def safe_fix(model_name, field_name):
         Model = apps.get_model("webinars", model_name)
         table = Model._meta.db_table
 
-        if not table_has_column(table, field_name):
+        if not column_exists(schema_editor, table, field_name):
             return
 
         for obj in Model.objects.all():
@@ -26,11 +27,11 @@ def convert_text_to_html(apps, schema_editor):
                     setattr(obj, field_name, f"<p>{text}</p>")
                     obj.save(update_fields=[field_name])
 
-    safe_fix("webinars", "LiveWebinar", "description")
-    safe_fix("webinars", "WebinarOverview", "content")
-    safe_fix("webinars", "WebinarBenefit", "content")
-    safe_fix("webinars", "WebinarAreaCovered", "content")
-    safe_fix("webinars", "WebinarWhyAttend", "content")
+    safe_fix("LiveWebinar", "description")
+    safe_fix("WebinarOverview", "content")
+    safe_fix("WebinarBenefit", "content")
+    safe_fix("WebinarAreaCovered", "content")
+    safe_fix("WebinarWhyAttend", "content")
 
 
 class Migration(migrations.Migration):

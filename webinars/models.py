@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
-from ckeditor_uploader.fields import RichTextUploadingField
+from ckeditor.fields import RichTextField
 
 
 
@@ -89,19 +89,19 @@ class WebinarPricing(models.Model):
 
 class WebinarOverview(models.Model):
     webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
-    content = RichTextUploadingField()
+    content = RichTextField()
 
 class WebinarWhyAttend(models.Model):
     webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
-    content = RichTextUploadingField()
+    content = RichTextField()
 
 class WebinarBenefit(models.Model):
     webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
-    content = RichTextUploadingField()
+    content = RichTextField()
 
 class WebinarAreaCovered(models.Model):
     webinar = models.OneToOneField(LiveWebinar, on_delete=models.CASCADE)
-    content = RichTextUploadingField()
+    content = RichTextField()
 
 
 
