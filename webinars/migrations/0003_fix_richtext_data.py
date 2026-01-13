@@ -1,26 +1,36 @@
-from django.db import migrations
+from django.db import migrations, connection
+
+def table_has_column(table, column):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = %s AND column_name = %s
+        """, [table, column])
+        return cursor.fetchone() is not None
+
 
 def convert_text_to_html(apps, schema_editor):
-    LiveWebinar = apps.get_model("webinars", "LiveWebinar")
-    WebinarOverview = apps.get_model("webinars", "WebinarOverview")
-    WebinarBenefit = apps.get_model("webinars", "WebinarBenefit")
-    WebinarAreaCovered = apps.get_model("webinars", "WebinarAreaCovered")
-    WebinarWhyAttend = apps.get_model("webinars", "WebinarWhyAttend")
+    def safe_fix(app_label, model_name, field_name):
+        Model = apps.get_model("webinars", model_name)
+        table = Model._meta.db_table
 
-    def fix(qs, field):
-        for obj in qs.all():
-            value = getattr(obj, field, None)
+        if not table_has_column(table, field_name):
+            return
+
+        for obj in Model.objects.all():
+            value = getattr(obj, field_name, None)
             if value:
                 text = value.strip()
                 if text and not text.startswith("<"):
-                    setattr(obj, field, f"<p>{text}</p>")
-                    obj.save(update_fields=[field])
+                    setattr(obj, field_name, f"<p>{text}</p>")
+                    obj.save(update_fields=[field_name])
 
-    fix(LiveWebinar.objects, "description")
-    fix(WebinarOverview.objects, "content")
-    fix(WebinarBenefit.objects, "content")
-    fix(WebinarAreaCovered.objects, "content")
-    fix(WebinarWhyAttend.objects, "content")
+    safe_fix("webinars", "LiveWebinar", "description")
+    safe_fix("webinars", "WebinarOverview", "content")
+    safe_fix("webinars", "WebinarBenefit", "content")
+    safe_fix("webinars", "WebinarAreaCovered", "content")
+    safe_fix("webinars", "WebinarWhyAttend", "content")
 
 
 class Migration(migrations.Migration):
