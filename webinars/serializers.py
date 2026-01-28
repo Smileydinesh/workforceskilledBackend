@@ -10,6 +10,8 @@ from .models import (
     WebinarBenefit,
     WebinarAreaCovered,
 )
+from subscriptions.utils import user_has_active_live_subscription
+
 
 
 
@@ -47,6 +49,7 @@ class LiveWebinarSerializer(serializers.ModelSerializer):
         fields = [
             "webinar_id",
             "title",
+            "is_test",          
             "cover_image",
             "instructor",
             "start_datetime", 
@@ -58,15 +61,25 @@ class LiveWebinarSerializer(serializers.ModelSerializer):
 
     def get_cover_image(self, obj):
         request = self.context.get("request")
-        return request.build_absolute_uri(obj.cover_image.url)
+
+        if obj.cover_image and hasattr(obj.cover_image, "url"):
+            return request.build_absolute_uri(obj.cover_image.url)
+
+        return None
+
 
     def get_display_price(self, obj):
-        """
-        Lowest price shown on listing card
-        """
-        if hasattr(obj, "pricing") and obj.pricing:
-            return obj.pricing.live_single_price
-        return None
+        request = self.context.get("request")
+
+        if not hasattr(obj, "pricing") or not obj.pricing:
+            return None
+
+        if request and request.user.is_authenticated:
+            if user_has_active_live_subscription(request.user):
+                return 0
+
+        return obj.pricing.live_single_price
+
 
     def get_time_display(self, obj):
         return localtime(obj.start_datetime).strftime("%I:%M %p")
@@ -92,7 +105,8 @@ class WebinarPricingSerializer(serializers.ModelSerializer):
 # ---------------- DETAIL SERIALIZER ----------------
 class LiveWebinarDetailSerializer(serializers.ModelSerializer):
     instructor = InstructorSerializer()
-    pricing = WebinarPricingSerializer(allow_null=True)
+    pricing = serializers.SerializerMethodField()
+
 
     date_display = serializers.SerializerMethodField()
     pst = serializers.SerializerMethodField()
@@ -108,6 +122,7 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
         fields = [
             "webinar_id",
             "title",
+            "is_test",
             "description",
             "status",
             "start_datetime",
@@ -124,6 +139,35 @@ class LiveWebinarDetailSerializer(serializers.ModelSerializer):
         ]
 
     # -------- DATE / TIME --------
+
+    def get_pricing(self, obj):
+        pricing = obj.pricing
+        if not pricing:
+            return None
+
+        request = self.context.get("request")
+
+        data = {
+            "live_single_price": pricing.live_single_price,
+            "live_multi_price": pricing.live_multi_price,
+            "recorded_single_price": pricing.recorded_single_price,
+            "recorded_multi_price": pricing.recorded_multi_price,
+            "combo_single_price": pricing.combo_single_price,
+            "combo_multi_price": pricing.combo_multi_price,
+        }
+
+        # 🔒 SUBSCRIPTION OVERRIDE
+        if request and request.user.is_authenticated:
+            if user_has_active_live_subscription(request.user):
+                data["live_single_price"] = 0
+                data["live_multi_price"] = 0
+
+                # Combo = recorded only
+                data["combo_single_price"] = pricing.recorded_single_price
+                data["combo_multi_price"] = pricing.recorded_multi_price
+
+        return data
+
 
     def get_date_display(self, obj):
         return obj.start_datetime.strftime("%A, %B %d, %Y")

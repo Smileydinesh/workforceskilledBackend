@@ -6,6 +6,8 @@ from django.shortcuts import get_object_or_404
 from .models import CartItem
 from webinars.models import LiveWebinar
 from recorded_webinars.models import RecordedWebinar  # Add this import
+from subscriptions.utils import user_has_active_live_subscription
+
 
 
 LIVE_ALLOWED_PURCHASES = {
@@ -21,6 +23,14 @@ RECORDED_ALLOWED_PURCHASES = {
     "RECORDED_SINGLE",
     "RECORDED_MULTI",
 }
+
+SUBSCRIPTION_BLOCKED_PURCHASES = {
+    "LIVE_SINGLE",
+    "LIVE_MULTI",
+    "COMBO_SINGLE",
+    "COMBO_MULTI",
+}
+
 
 class CartAPIView(APIView):
 
@@ -103,8 +113,6 @@ class CartAPIView(APIView):
         })
 
     # ---------------- ADD TO CART ----------------
-    # ---------------- ADD TO CART ----------------
-    # ---------------- ADD TO CART ----------------
     def post(self, request):
         session_key = self.get_session_key(request)
         webinar_id = request.data.get("webinar_id")
@@ -119,6 +127,16 @@ class CartAPIView(APIView):
             webinar = get_object_or_404(RecordedWebinar, webinar_id=webinar_id)
             live_webinar = None
             recorded_webinar = webinar
+
+        if webinar_type == "LIVE":
+            if purchase_type.startswith("LIVE") or purchase_type.startswith("COMBO"):
+                if user_has_active_live_subscription(request.user):
+                    return Response(
+                        {
+                            "detail": "You already have an active live subscription. Live webinars are included for free."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
         # Validate purchase type
         if webinar_type == "LIVE" and purchase_type not in LIVE_ALLOWED_PURCHASES:

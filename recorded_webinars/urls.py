@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RecordedWebinarListAPIView,
     RecordedWebinarDetailAPIView,
-    RecordedWebinarFilterAPIView,
+    RecordedWebinarFilterAPIView,WatchRecordedWebinarAPIView
 )
 
 urlpatterns = [
@@ -23,5 +23,10 @@ urlpatterns = [
         "recorded-webinars/<str:webinar_id>/",
         RecordedWebinarDetailAPIView.as_view(),
         name="recorded-webinar-detail",
+    ),
+    path(
+        "recorded-webinars/<str:webinar_id>/watch/",
+        WatchRecordedWebinarAPIView.as_view(),
+        name="watch-recorded-webinar",
     ),
 ]

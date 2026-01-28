@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from ckeditor.fields import RichTextField
+from datetime import timedelta
 
 
 
@@ -36,8 +37,15 @@ class LiveWebinar(models.Model):
   
 
     title = models.CharField(max_length=255)
+
+    is_test = models.BooleanField(
+        default=False,
+        help_text="Mark this webinar as Test / Demo only"
+    )
+
     description = models.TextField(blank=True) 
-    cover_image = models.ImageField(upload_to="webinars/covers/")
+    cover_image = models.ImageField(upload_to="webinars/covers/",null=True,blank=True,help_text="Optional – upload only if needed")
+
     instructor = models.ForeignKey("webinars.Instructor",on_delete=models.CASCADE)
 
     start_datetime = models.DateTimeField()
@@ -59,11 +67,35 @@ class LiveWebinar(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.webinar_id:
-            self.webinar_id = f"WEB{timezone.now().strftime('%y%m%d')}{uuid.uuid4().hex[:4].upper()}"
+            self.webinar_id = (
+                f"WEB{timezone.now().strftime('%y%m%d')}"
+                f"{uuid.uuid4().hex[:4].upper()}"
+            )
+
+        # ✅ JUST CALCULATE STATUS (NO EXTRA SAVE)
+        self.status = self.calculate_status()
+
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return self.title
+    
+    @property
+    def end_datetime(self):
+        return self.start_datetime + timedelta(minutes=self.duration_minutes)
+    
+    def calculate_status(self):
+        now = timezone.now()
+        end_time = self.start_datetime + timedelta(minutes=self.duration_minutes)
+
+        if now < self.start_datetime:
+            return "UPCOMING"
+        elif self.start_datetime <= now <= end_time:
+            return "LIVE"
+        return "ENDED"
+
+
 
 
 class WebinarPricing(models.Model):

@@ -76,12 +76,13 @@ class LiveWebinarAdmin(admin.ModelAdmin):
         "webinar_id",
         "category",
         "instructor",
+        "is_test", 
         "start_datetime",
         "duration_minutes",
         "status",
     )
 
-    list_filter = ("status", "category", "start_datetime")
+    list_filter = ("status", "category","is_test", "start_datetime")
     search_fields = ("title", "webinar_id")
     readonly_fields = ("webinar_id",)
 
@@ -100,13 +101,14 @@ class LiveWebinarAdmin(admin.ModelAdmin):
                 "category",
                 "instructor",
                 "cover_image",
+                "is_test", 
                 "status",
             )
         }),
         ("Schedule", {
             "fields": (
                 "start_datetime",
-                "time_display",
+                # "time_display",
                 "duration_minutes",
             )
         }),

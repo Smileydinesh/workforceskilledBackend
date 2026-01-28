@@ -14,6 +14,11 @@ from django.db.models.functions import TruncMonth
 from django.db.models import Q
 from .models import RecordedWebinar
 from webinars.models import Instructor, WebinarCategory
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from recorded_webinars.utils import user_has_purchased_recorded_webinar
+
 
 from .serializers import RecordedWebinarDetailPageSerializer
 
@@ -144,4 +149,29 @@ class RecordedWebinarDetailAPIView(RetrieveAPIView):
         return {"request": self.request}
 
 
+class WatchRecordedWebinarAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, webinar_id):
+        webinar = get_object_or_404(
+            RecordedWebinar,
+            webinar_id=webinar_id,
+            is_published=True
+        )
+
+        # ✅ Access only if purchased (recorded or combo)
+        if user_has_purchased_recorded_webinar(request.user, webinar):
+            return Response(
+                {
+                    "access": True,
+                    "webinar_id": webinar.webinar_id,
+                },
+                status=status.HTTP_200_OK
+            )
+
+        # ❌ No access
+        return Response(
+            {"detail": "You do not have access to this recorded webinar"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 

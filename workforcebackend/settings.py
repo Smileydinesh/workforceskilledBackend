@@ -60,7 +60,8 @@ INSTALLED_APPS = [
     'orders',
     "recorded_webinars",
     "ckeditor",
-    
+    "ckeditor_uploader",
+    "subscriptions",
 ]
 
 MIDDLEWARE = [
@@ -110,6 +111,7 @@ DATABASES = {
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5174",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://workforceskilled.onrender.com",
@@ -204,7 +206,9 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+CKEDITOR_UPLOAD_PATH = "uploads/"
 CKEDITOR_CONFIGS = {
     "default": {
         "toolbar": "full",
@@ -215,7 +219,7 @@ CKEDITOR_CONFIGS = {
     }
 }
 CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
-
+CKEDITOR_ALLOW_NONIMAGE_FILES = True
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
