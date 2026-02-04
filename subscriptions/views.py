@@ -62,7 +62,7 @@ class PurchaseSubscriptionAPIView(APIView):
         order = Order.objects.create(
             user=request.user,
             total_amount=plan.price,
-            status="PAID"  # later → PAYMENT_PENDING
+            status="PENDING"# later → PAYMENT_PENDING
         )
 
         # 🔹 Create OrderItem (subscription)

@@ -1,13 +1,12 @@
-# cart/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+
 from .models import CartItem
 from webinars.models import LiveWebinar
-from recorded_webinars.models import RecordedWebinar  # Add this import
+from recorded_webinars.models import RecordedWebinar
 from subscriptions.utils import user_has_active_live_subscription
-
 
 
 LIVE_ALLOWED_PURCHASES = {
@@ -34,58 +33,56 @@ SUBSCRIPTION_BLOCKED_PURCHASES = {
 
 class CartAPIView(APIView):
 
-    
+    # ---------------- SESSION KEY ----------------
     def get_session_key(self, request):
         if not request.session.session_key:
-            request.session.save()   # THIS creates the session safely
+            request.session.save()
         return request.session.session_key
 
+    # ---------------- CART QUERYSET ----------------
+    def get_cart_queryset(self, request):
+        if request.user.is_authenticated:
+            return CartItem.objects.filter(user=request.user)
+        else:
+            session_key = self.get_session_key(request)
+            return CartItem.objects.filter(session_key=session_key)
 
-    def get_price(self, webinar, purchase_type, webinar_type):  # Add webinar_type param
+    # ---------------- PRICE ----------------
+    def get_price(self, webinar, purchase_type, webinar_type):
+        pricing = webinar.pricing
+
         if webinar_type == "LIVE":
-            pricing = webinar.pricing
             price_map = {
                 "LIVE_SINGLE": pricing.live_single_price,
                 "LIVE_MULTI": pricing.live_multi_price,
-                "RECORDED_SINGLE": pricing.recorded_single_price,  # Fallback, but won't be used for LIVE
+                "RECORDED_SINGLE": pricing.recorded_single_price,
                 "RECORDED_MULTI": pricing.recorded_multi_price,
                 "COMBO_SINGLE": pricing.combo_single_price,
                 "COMBO_MULTI": pricing.combo_multi_price,
             }
-        else:  # RECORDED
-            pricing = webinar.pricing
+        else:
             price_map = {
                 "RECORDED_SINGLE": pricing.single_price,
-                "RECORDED_MULTI": pricing.multi_user_price or pricing.single_price,  # Fallback if multi is null
+                "RECORDED_MULTI": pricing.multi_user_price or pricing.single_price,
             }
-            # For recorded, map LIVE/COMBO to single_price as fallback (or raise error if invalid)
-            if purchase_type not in price_map:
-                price_map[purchase_type] = pricing.single_price  # Or validate strictly
 
         price = price_map.get(purchase_type)
-
         if price is None:
-            raise ValueError("Invalid purchase type price mapping")
+            raise ValueError("Invalid purchase type")
 
         return price
 
-
-    # ---------------- GET CART ----------------
+    # ================= GET CART =================
     def get(self, request):
-        print("GET SESSION:", request.session.session_key)
-
-
-        session_key = self.get_session_key(request)
-        items = CartItem.objects.filter(session_key=session_key)
+        items = self.get_cart_queryset(request)
 
         data = []
         total = 0
 
         for item in items:
-            webinar = item.webinar  # uses @property
-
-            if webinar is None:
-                continue  # SAFETY: skip corrupted rows
+            webinar = item.webinar
+            if not webinar:
+                continue
 
             subtotal = item.subtotal()
             total += subtotal
@@ -94,11 +91,9 @@ class CartAPIView(APIView):
                 "id": item.id,
                 "webinar_id": webinar.webinar_id,
                 "title": webinar.title,
-                "cover_image": (
-                    request.build_absolute_uri(webinar.cover_image.url)
-                    if webinar.cover_image else None
-                ),
-                "instructor": webinar.instructor.name if hasattr(webinar, "instructor") else None,
+                "cover_image": request.build_absolute_uri(webinar.cover_image.url)
+                if webinar.cover_image else None,
+                "instructor": getattr(webinar.instructor, "name", None),
                 "purchase_type": item.purchase_type,
                 "price": float(item.unit_price),
                 "quantity": item.quantity,
@@ -112,12 +107,11 @@ class CartAPIView(APIView):
             "count": len(data),
         })
 
-    # ---------------- ADD TO CART ----------------
+    # ================= ADD TO CART =================
     def post(self, request):
-        session_key = self.get_session_key(request)
         webinar_id = request.data.get("webinar_id")
-        purchase_type = request.data.get("purchase_type", "LIVE_SINGLE")
-        webinar_type = request.data.get("webinar_type", "LIVE")
+        purchase_type = request.data.get("purchase_type")
+        webinar_type = request.data.get("webinar_type")
 
         if webinar_type == "LIVE":
             webinar = get_object_or_404(LiveWebinar, webinar_id=webinar_id)
@@ -128,17 +122,17 @@ class CartAPIView(APIView):
             live_webinar = None
             recorded_webinar = webinar
 
-        if webinar_type == "LIVE":
-            if purchase_type.startswith("LIVE") or purchase_type.startswith("COMBO"):
-                if user_has_active_live_subscription(request.user):
-                    return Response(
-                        {
-                            "detail": "You already have an active live subscription. Live webinars are included for free."
-                        },
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+        # 🔒 Subscription block (CLEAN)
+        if (
+            request.user.is_authenticated
+            and user_has_active_live_subscription(request.user)
+            and purchase_type in SUBSCRIPTION_BLOCKED_PURCHASES
+        ):
+            return Response(
+                {"detail": "You already have an active subscription."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Validate purchase type
         if webinar_type == "LIVE" and purchase_type not in LIVE_ALLOWED_PURCHASES:
             return Response({"error": "Invalid purchase type"}, status=400)
 
@@ -147,17 +141,25 @@ class CartAPIView(APIView):
 
         unit_price = self.get_price(webinar, purchase_type, webinar_type)
 
-        item, created = CartItem.objects.get_or_create(
-            session_key=session_key,
-            webinar_type=webinar_type,
-            live_webinar=live_webinar,
-            recorded_webinar=recorded_webinar,
-            purchase_type=purchase_type,
-            defaults={
-                "unit_price": unit_price,
-                "quantity": 1,
-            }
-        )
+        if request.user.is_authenticated:
+            item, created = CartItem.objects.get_or_create(
+                user=request.user,
+                webinar_type=webinar_type,
+                live_webinar=live_webinar,
+                recorded_webinar=recorded_webinar,
+                purchase_type=purchase_type,
+                defaults={"unit_price": unit_price, "quantity": 1},
+            )
+        else:
+            session_key = self.get_session_key(request)
+            item, created = CartItem.objects.get_or_create(
+                session_key=session_key,
+                webinar_type=webinar_type,
+                live_webinar=live_webinar,
+                recorded_webinar=recorded_webinar,
+                purchase_type=purchase_type,
+                defaults={"unit_price": unit_price, "quantity": 1},
+            )
 
         if not created:
             item.quantity += 1
@@ -165,18 +167,14 @@ class CartAPIView(APIView):
 
         return Response({"message": "Added to cart"}, status=201)
 
-
-    # ---------------- REMOVE ITEM ----------------
+    # ================= REMOVE ITEM =================
     def delete(self, request):
-        session_key = self.get_session_key(request)
         item_id = request.data.get("item_id")
 
-        CartItem.objects.filter(
-            id=item_id,
-            session_key=session_key
-        ).delete()
+        if request.user.is_authenticated:
+            CartItem.objects.filter(id=item_id, user=request.user).delete()
+        else:
+            session_key = self.get_session_key(request)
+            CartItem.objects.filter(id=item_id, session_key=session_key).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
-
-    

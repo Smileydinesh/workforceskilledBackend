@@ -28,6 +28,8 @@ urlpatterns = [
     path("api/", include("recorded_webinars.urls")),
     path("ckeditor/", include("ckeditor_uploader.urls")),
     path("api/subscriptions/", include("subscriptions.urls")),
+    path("api/payments/", include("payments.urls")),
+
 
 
 

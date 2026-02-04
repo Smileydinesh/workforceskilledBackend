@@ -52,7 +52,8 @@ class RecordedWebinarFrontendSerializer(serializers.ModelSerializer):
     def get_display_price(self, obj):
         if hasattr(obj, "pricing") and obj.pricing:
             return obj.pricing.single_price
-        return 0
+        return None
+
 
     def get_month(self, obj):
         return obj.created_at.strftime("%Y-%m")

@@ -8,8 +8,20 @@ from cart.models import CartItem
 from .models import Order, OrderItem
 from orders.models import Checkout
 
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+
+from orders.models import Order, OrderItem, Checkout
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 class CheckoutAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get_session_key(self, request):
@@ -72,11 +84,13 @@ class CheckoutAPIView(APIView):
         for item in cart_items:
             OrderItem.objects.create(
                 order=order,
-                webinar=item.webinar,
+                live_webinar=item.live_webinar if item.webinar_type == "LIVE" else None,
+                recorded_webinar=item.recorded_webinar if item.webinar_type == "RECORDED" else None,
                 purchase_type=item.purchase_type,
                 unit_price=item.unit_price,
                 quantity=item.quantity,
             )
+
 
         # 🔒 Save checkout address
         Checkout.objects.create(
@@ -102,3 +116,63 @@ class CheckoutAPIView(APIView):
             "order_id": order.id,
             "total": order.total_amount,
         }, status=status.HTTP_201_CREATED)
+
+
+
+class OrderDetailsAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, order_id):
+        order = get_object_or_404(
+            Order,
+            id=order_id,
+            user=request.user
+        )
+
+        # 🔒 Billing address
+        checkout = get_object_or_404(
+            Checkout,
+            order=order,
+            user=request.user
+        )
+
+        items_data = []
+        for item in order.items.all():
+            if item.live_webinar:
+                title = item.live_webinar.title
+                item_type = "LIVE_WEBINAR"
+            elif item.recorded_webinar:
+                title = item.recorded_webinar.title
+                item_type = "RECORDED_WEBINAR"
+            elif item.subscription_plan:
+                title = item.subscription_plan.name
+                item_type = "SUBSCRIPTION"
+            else:
+                title = "Unknown"
+                item_type = "UNKNOWN"
+
+            items_data.append({
+                "title": title,
+                "type": item_type,
+                "quantity": item.quantity,
+                "subtotal": item.unit_price * item.quantity,
+            })
+
+        return Response({
+            "id": order.id,
+            "status": order.status,
+            "total": order.total_amount,
+            "billing": {
+                "first_name": checkout.first_name,
+                "last_name": checkout.last_name,
+                "email": checkout.email,
+                "phone": checkout.phone,
+                "address": checkout.address,
+                "city": checkout.city,
+                "state": checkout.state,
+                "zip_code": checkout.zip_code,
+                "country": checkout.country,
+            },
+            "items": items_data
+        }, status=status.HTTP_200_OK)

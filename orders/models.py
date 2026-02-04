@@ -1,6 +1,9 @@
 from django.db import models
 from django.conf import settings
 from webinars.models import LiveWebinar
+from recorded_webinars.models import RecordedWebinar
+from django.core.exceptions import ValidationError
+
 # from subscriptions.models import SubscriptionPlan
 
 User = settings.AUTH_USER_MODEL
@@ -42,6 +45,9 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     created_at = models.DateTimeField(auto_now_add=True)
 
+    payment_provider = models.CharField(max_length=30, default="PAYPAL")
+    payment_id = models.CharField(max_length=255, blank=True, null=True)
+
     def __str__(self):
         return f"Order #{self.id} - {self.user.email}"
 
@@ -49,31 +55,49 @@ class Order(models.Model):
 # orders/models.py
 
 
+
+
 class OrderItem(models.Model):
-    order = models.ForeignKey(
-        "orders.Order",
-        related_name="items",
+    order = models.ForeignKey("orders.Order", related_name="items", on_delete=models.CASCADE)
+
+    live_webinar = models.ForeignKey(
+        "webinars.LiveWebinar",
+        null=True, blank=True,
         on_delete=models.CASCADE
     )
 
-    webinar = models.ForeignKey(
-        "webinars.LiveWebinar",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+    recorded_webinar = models.ForeignKey(
+        RecordedWebinar,
+        null=True, blank=True,
+        on_delete=models.CASCADE
     )
 
     subscription_plan = models.ForeignKey(
         "subscriptions.SubscriptionPlan",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        null=True, blank=True,
+        on_delete=models.CASCADE
     )
 
     purchase_type = models.CharField(max_length=30)
     unit_price = models.DecimalField(max_digits=8, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
 
+
     def subtotal(self):
         return self.unit_price * self.quantity
+    
+    def clean(self):
+        targets = [
+            self.live_webinar,
+            self.recorded_webinar,
+            self.subscription_plan
+        ]
+        if sum(x is not None for x in targets) != 1:
+            raise ValidationError(
+                "OrderItem must have exactly one purchase target"
+            )
+        
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 

@@ -11,6 +11,17 @@ from accounts.models import User
 from .serializers import RegisterSerializer
 from accounts.utils.email import send_welcome_email
 
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from orders.models import Order
+from subscriptions.models import UserSubscription
+from accounts.serializers import (
+    OrderSerializer,
+    UserSubscriptionSerializer
+)
+
 
 def send_email_background(user):
     try:
@@ -104,4 +115,52 @@ class MeAPIView(APIView):
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
+        })
+
+
+
+
+
+class UserDashboardAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # ---------------- USER INFO ----------------
+        user_data = {
+            "id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+        }
+
+        # ---------------- ORDERS ----------------
+        orders = (
+            Order.objects
+            .filter(user=user)
+            .prefetch_related("items")
+            .order_by("-created_at")
+        )
+
+        orders_data = OrderSerializer(orders, many=True).data
+
+        # ---------------- SUBSCRIPTION ----------------
+        subscription = (
+            UserSubscription.objects
+            .filter(user=user, is_active=True)
+            .order_by("-end_date")
+            .first()
+        )
+
+        subscription_data = (
+            UserSubscriptionSerializer(subscription).data
+            if subscription else None
+        )
+
+        # ---------------- FINAL RESPONSE ----------------
+        return Response({
+            "user": user_data,
+            "subscription": subscription_data,
+            "orders": orders_data,
         })

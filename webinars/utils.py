@@ -1,5 +1,4 @@
 from orders.models import OrderItem
-from django.utils import timezone
 
 def user_has_purchased_live_webinar(user, webinar):
     if not user.is_authenticated:
@@ -7,7 +6,7 @@ def user_has_purchased_live_webinar(user, webinar):
 
     return OrderItem.objects.filter(
         order__user=user,
-        webinar=webinar,
+        live_webinar=webinar,   # ✅ FIXED
         purchase_type__in=[
             "LIVE_SINGLE",
             "LIVE_MULTI",

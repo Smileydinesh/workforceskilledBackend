@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "ckeditor",
     "ckeditor_uploader",
     "subscriptions",
+    "payments",
 ]
 
 MIDDLEWARE = [
@@ -126,15 +127,18 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
     "https://workforceskilled.onrender.com",
 ]
 
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.SessionAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -144,6 +148,13 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+# ==========================
+# SESSION PERSISTENCE FIX
+# ==========================
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7   # 7 DAYS
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 
 
@@ -235,3 +246,13 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
   # app password (no spaces)
 
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
+
+
+# PAYPAL CONFIG
+PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID")
+PAYPAL_SECRET = os.environ.get("PAYPAL_SECRET")
+
+PAYPAL_BASE_URL = os.environ.get(
+    "PAYPAL_BASE_URL",
+    "https://api-m.paypal.com"
+)
